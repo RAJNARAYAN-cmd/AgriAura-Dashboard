@@ -1,0 +1,366 @@
+<!-- ===========================================================================
+// PART 2: HTML FRONTEND (Save as index.html)
+//
+// Instructions:
+// 1. Save this code as an HTML file (e.g., index.html).
+// 2. Make sure the Python backend (app.py) is running first.
+// 3. Open this file in your browser. Using the "Live Server" extension in 
+//    VS Code is recommended.
+// ======================================================================== -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriAura Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F0F2F5; }
+        .main-header { background: #FFFFFF; border-bottom: 1px solid #E5E7EB; }
+        .card { background-color: #FFFFFF; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
+        .plugin-card { position: relative; overflow: hidden; background-color: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(209, 213, 219, 0.3); }
+        .plugin-card::before { content: ''; position: absolute; inset: 0; border-radius: 12px; padding: 1px; background: linear-gradient(135deg, rgba(20, 83, 45, 0.1), rgba(251, 191, 36, 0.1)); -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; z-index: -1; }
+        .stat-card { border: 1px solid #E5E7EB; }
+        .chart-container { position: relative; width: 100%; height: 350px; }
+        .loader { border: 4px solid #f3f4f6; border-top: 4px solid #059669; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 1rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tabs-list button.active { background-color: #ffffff; color: #065f46; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tabs-content { display: none; }
+        .tabs-content.active { display: block; }
+        .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #059669; }
+        input:checked + .slider:before { transform: translateX(14px); }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Header -->
+    <header class="main-header sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-2">
+                    <svg class="h-8 w-8 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+                    <h1 class="text-2xl font-bold text-gray-900">AgriAura</h1>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Kothri Kalan, Madhya Pradesh, India | <span id="current-time">Fri, Aug 29, 2025, 6:35 PM</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+
+        <!-- Sections 1 & 2: Monitoring, Prediction, Recording (No changes) -->
+        <section id="monitoring-section" class="card">
+            <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 mb-1">Real-time Monitoring</h2>
+                    <p class="text-gray-500">Live sensor data from your fields.</p>
+                </div>
+                <button id="analyze-now-btn" class="bg-emerald-100 text-emerald-800 font-semibold px-4 py-2 rounded-md hover:bg-emerald-200 transition text-sm flex items-center gap-2">
+                    ✨ Analyze Latest Data
+                </button>
+            </div>
+            <div id="analysis-result-container" class="mb-6 hidden">
+                <h3 class="font-semibold text-gray-800 mb-2">AI Analysis:</h3>
+                <div id="analysis-result" class="p-4 bg-gray-50 rounded-lg text-sm text-gray-700"></div>
+            </div>
+            <div id="stats-loader" class="text-center py-8"><div class="loader"></div><p class="text-gray-500 mt-2">Loading live data...</p></div>
+            <div id="stats-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 hidden"></div>
+            <div id="chart-container" class="chart-container hidden"><canvas id="sensor-chart"></canvas></div>
+        </section>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 card">
+                <h2 class="text-xl font-bold text-gray-900 mb-1">CO₂ Emission Predictor</h2>
+                <p class="text-gray-500 mb-6">Use the AI model to predict CO₂ emissions based on new sensor data.</p>
+                <form id="predict-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <input type="number" step="0.1" id="pred_temperature" class="p-2 border rounded-md" placeholder="Temperature (°C)" value="28.5" required>
+                    <input type="number" step="0.1" id="pred_humidity" class="p-2 border rounded-md" placeholder="Humidity (%)" value="62" required>
+                    <input type="number" step="0.1" id="pred_soilMoisture" class="p-2 border rounded-md" placeholder="Soil Moisture" value="450" required>
+                    <input type="number" step="0.1" id="pred_nitrogen" class="p-2 border rounded-md" placeholder="Nitrogen (ppm)" value="150" required>
+                    <input type="number" step="0.1" id="pred_phosphorus" class="p-2 border rounded-md" placeholder="Phosphorus (ppm)" value="75" required>
+                    <input type="number" step="0.1" id="pred_potassium" class="p-2 border rounded-md" placeholder="Potassium (ppm)" value="110" required>
+                    <input type="number" step="0.1" id="pred_lightIntensity" class="p-2 border rounded-md" placeholder="Light (lux)" value="55000" required>
+                    <button type="submit" class="w-full bg-emerald-600 text-white font-semibold p-2 rounded-md hover:bg-emerald-700 transition md:col-span-2">Predict Emissions</button>
+                </form>
+                <div id="predict-result-container" class="mt-4 hidden">
+                    <h3 class="font-semibold text-gray-800">Prediction Result:</h3>
+                    <pre id="predict-result" class="mt-2 p-3 bg-gray-50 rounded-lg text-sm"></pre>
+                    <button id="generate-report-btn" class="mt-4 bg-emerald-600 text-white font-semibold px-4 py-2 rounded-md hover:bg-emerald-700 transition text-sm flex items-center gap-2">
+                        ✨ Generate AI Report
+                    </button>
+                </div>
+                <div id="report-result-container" class="mt-4 hidden">
+                     <h3 class="font-semibold text-gray-800 mb-2">AI Sustainability Report:</h3>
+                     <div id="report-result" class="p-4 bg-gray-50 rounded-lg text-sm text-gray-700 whitespace-pre-wrap"></div>
+                </div>
+            </div>
+            <div class="card">
+                <h2 class="text-xl font-bold text-gray-900 mb-1">Record Data</h2>
+                <p class="text-gray-500 mb-6">Manually log new sensor readings.</p>
+                <form id="record-form" class="space-y-4">
+                    <input type="number" step="0.1" id="temperature" class="w-full p-2 border rounded-md" placeholder="Temperature (°C)" required>
+                    <input type="number" step="0.1" id="humidity" class="w-full p-2 border rounded-md" placeholder="Humidity (%)" required>
+                    <input type="number" step="0.1" id="sunlight" class="w-full p-2 border rounded-md" placeholder="Sunlight (lux)" required>
+                    <input type="number" step="0.1" id="co2" class="w-full p-2 border rounded-md" placeholder="CO₂ (ppm)" required>
+                    <button type="submit" class="w-full bg-gray-800 text-white font-semibold p-2 rounded-md hover:bg-gray-900 transition">Save Record</button>
+                </form>
+                <div id="record-message" class="mt-3"></div>
+            </div>
+        </div>
+        
+        <!-- Section 3: Plugin Management -->
+        <section id="plugin-section" class="plugin-card card">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h2 class="text-xl font-bold text-emerald-900 mb-1">Plugin Management</h2>
+                    <p class="text-emerald-700">Extend your AgriAura dashboard with powerful plugins.</p>
+                </div>
+                <div id="installed-count-badge" class="text-sm font-medium bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full"></div>
+            </div>
+            <div class="tabs">
+                <div class="tabs-list bg-emerald-100/50 p-1 rounded-lg grid grid-cols-3 gap-1 mb-6">
+                    <button data-tab="installed" class="tab-btn px-4 py-2 text-sm font-semibold text-emerald-700 rounded-md transition active">Installed</button>
+                    <button data-tab="marketplace" class="tab-btn px-4 py-2 text-sm font-semibold text-emerald-700 rounded-md transition">Marketplace</button>
+                    <button data-tab="settings" class="tab-btn px-4 py-2 text-sm font-semibold text-emerald-700 rounded-md transition">Settings</button>
+                </div>
+                <div id="installed-tab" class="tabs-content active space-y-4"></div>
+                <div id="marketplace-tab" class="tabs-content"><div id="marketplace-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div></div>
+                <div id="settings-tab" class="tabs-content space-y-4"></div>
+            </div>
+        </section>
+
+        <!-- Section 4: Data Log (No changes) -->
+        <section id="log-section" class="card">
+            <h2 class="text-xl font-bold text-gray-900 mb-1">Data Log</h2>
+            <p class="text-gray-500 mb-6">A complete history of all recorded sensor data.</p>
+            <div id="table-loader" class="text-center py-8"><div class="loader"></div><p class="text-gray-500 mt-2">Loading historical data...</p></div>
+            <div class="overflow-x-auto hidden" id="table-container">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temp (°C)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Humidity (%)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Light (lux)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">CO₂ (ppm)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sensor-data-table" class="bg-white divide-y divide-gray-200"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const API_BASE_URL = 'http://127.0.0.1:5000';
+            let sensorChart = null;
+            let lastPredictionData = null;
+            let lastSensorData = null;
+
+            // --- DOM Elements (No changes) ---
+            const statsLoader = document.getElementById('stats-loader'), statsGrid = document.getElementById('stats-grid'),
+                chartContainer = document.getElementById('chart-container'), tableLoader = document.getElementById('table-loader'),
+                tableContainer = document.getElementById('table-container'), sensorDataTable = document.getElementById('sensor-data-table'),
+                predictForm = document.getElementById('predict-form'), predictResultContainer = document.getElementById('predict-result-container'),
+                predictResultEl = document.getElementById('predict-result'), recordForm = document.getElementById('record-form'),
+                recordMessageEl = document.getElementById('record-message'), generateReportBtn = document.getElementById('generate-report-btn'),
+                reportResultContainer = document.getElementById('report-result-container'), reportResultEl = document.getElementById('report-result'),
+                analyzeNowBtn = document.getElementById('analyze-now-btn'), analysisResultContainer = document.getElementById('analysis-result-container'),
+                analysisResultEl = document.getElementById('analysis-result');
+            
+            // --- Gemini API & Helpers (No changes) ---
+            const callGeminiApi=async prompt=>{console.log("Simulating Gemini API call with prompt:",prompt);let t="An unknown error occurred.";if(prompt.includes("SUSTAINABILITY REPORT")){const e=lastPredictionData.isSustainable;t=`
+**Overall Assessment:**
+The predicted CO₂ emission level is ${lastPredictionData.predictedCo2.toFixed(2)} ppm, which is considered **${e?"sustainable":"not sustainable"}** based on the 400 ppm threshold.
+
+**Key Factors:**
+- **Temperature:** At ${lastPredictionData.input.temperature}°C, it is a moderate contributor.
+- **Nitrogen:** The nitrogen level of ${lastPredictionData.input.nitrogen} ppm is a significant factor in this prediction.
+
+**Recommendations:**
+1.  **Optimize Nitrogen Use:** Consider soil testing to apply nitrogen more precisely.
+2.  **Improve Soil Health:** Enhance soil carbon sequestration through practices like cover cropping.
+3.  **Monitor Irrigation:** Ensure efficient water use to avoid overly saturated soil.`}else if(prompt.includes("CURRENT CONDITIONS"))t=`Current farm conditions appear stable. The temperature is ${lastSensorData.temperature}°C with ${lastSensorData.humidity}% humidity. CO₂ levels are at ${lastSensorData.co2} ppm, which is within the expected range. No immediate anomalies detected.`;return new Promise(e=>setTimeout(()=>e(t.trim()),1500))};
+            const showMessage=(e,t,s=!1)=>{e.textContent=t,e.className=`p-2 rounded-md text-sm ${s?"bg-red-100 text-red-700":"bg-green-100 text-green-700"}`,setTimeout(()=>{e.textContent="",e.className=""},5e3)};
+
+            // --- Chart, Table, and Stat Rendering (No changes) ---
+            const renderStats = (latestData) => { if (!latestData) { statsGrid.innerHTML = '<p class="text-gray-500 col-span-4">No data available.</p>'; return; } lastSensorData = latestData; const stats = [ { label: 'Latest CO₂', value: `${latestData.co2 || 'N/A'} ppm` }, { label: 'Temperature', value: `${latestData.temperature}°C` }, { label: 'Humidity', value: `${latestData.humidity}%` }, { label: 'Sunlight', value: `${latestData.lightIntensity || 'N/A'} lux` } ]; statsGrid.innerHTML = stats.map(stat => `<div class="stat-card p-4 rounded-lg"><div><p class="text-sm text-gray-500">${stat.label}</p><p class="text-xl font-bold text-gray-900">${stat.value}</p></div></div>`).join(''); };
+            const renderChart = (data) => { const ctx = document.getElementById('sensor-chart').getContext('2d'); const labels = data.map(d => new Date(d.timestamp)).reverse(); if (sensorChart) { sensorChart.destroy(); } sensorChart = new Chart(ctx, { type: 'line', data: { labels: labels, datasets: [ { label: 'CO₂ (ppm)', data: data.map(d => d.co2).reverse(), borderColor: '#059669', yAxisID: 'y', tension: 0.3 }, { label: 'Temperature (°C)', data: data.map(d => d.temperature).reverse(), borderColor: '#f59e0b', yAxisID: 'y1', tension: 0.3 }, ] }, options: { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'time', time: { unit: 'day' } }, y: { position: 'left', title: { display: true, text: 'CO₂ (ppm)' } }, y1: { position: 'right', title: { display: true, text: 'Temp (°C)' }, grid: { drawOnChartArea: false } } } } }); };
+            const renderTable = (data) => { sensorDataTable.innerHTML = ''; if (data.length === 0) { sensorDataTable.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-gray-500">No data recorded.</td></tr>`; return; } data.slice(0, 10).forEach(row => { const tr = document.createElement('tr'); tr.innerHTML = `<td class="px-6 py-4 text-sm">${new Date(row.timestamp).toLocaleString()}</td><td class="px-6 py-4 text-sm">${row.temperature}</td><td class="px-6 py-4 text-sm">${row.humidity}</td><td class="px-6 py-4 text-sm">${row.lightIntensity || 'N/A'}</td><td class="px-6 py-4 text-sm font-semibold">${row.co2 || 'N/A'}</td>`; sensorDataTable.appendChild(tr); }); };
+
+            // --- Main Data Fetching (No changes) ---
+            const fetchAllSensorData = async () => { try { const response = await fetch(`${API_BASE_URL}/get_all_data`); if (!response.ok) throw new Error('Network response was not ok.'); const data = await response.json(); statsLoader.classList.add('hidden'); statsGrid.classList.remove('hidden'); chartContainer.classList.remove('hidden'); tableLoader.classList.add('hidden'); tableContainer.classList.remove('hidden'); if (data && data.length > 0) { renderStats(data[0]); renderChart(data); renderTable(data); } else { statsGrid.innerHTML = '<p class="text-gray-500 col-span-4">No data recorded yet.</p>'; } } catch (error) { console.error('Error fetching sensor data:', error); statsLoader.innerHTML = `<p class="text-red-500">Error: Could not fetch data from the backend. Is it running?</p>`; tableLoader.innerHTML = ''; } };
+
+            // --- Event Listeners (No changes to existing ones) ---
+            predictForm.addEventListener('submit', async(e)=>{e.preventDefault();reportResultContainer.classList.add("hidden");const t={temperature:parseFloat(document.getElementById("pred_temperature").value),humidity:parseFloat(document.getElementById("pred_humidity").value),soilMoisture:parseFloat(document.getElementById("pred_soilMoisture").value),nitrogen:parseFloat(document.getElementById("pred_nitrogen").value),phosphorus:parseFloat(document.getElementById("pred_phosphorus").value),potassium:parseFloat(document.getElementById("pred_potassium").value),lightIntensity:parseFloat(document.getElementById("pred_lightIntensity").value)};predictResultEl.textContent="Getting prediction...",predictResultContainer.classList.remove("hidden");try{const e=await fetch(`${API_BASE_URL}/predict`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t)}),s=await e.json();if(s.error)throw new Error(s.error);predictResultEl.textContent=JSON.stringify(s,null,2),lastPredictionData={...s,input:t}}catch(e){predictResultEl.textContent=`Error: ${e.message}`}});
+            generateReportBtn.addEventListener('click', async () => { if (!lastPredictionData) return; reportResultEl.innerHTML = '<div class="loader mx-0 my-2"></div>'; reportResultContainer.classList.remove('hidden'); const prompt = `GENERATE SUSTAINABILITY REPORT based on this data: ${JSON.stringify(lastPredictionData)}`; const report = await callGeminiApi(prompt); reportResultEl.textContent = report; });
+            analyzeNowBtn.addEventListener('click', async () => { if (!lastSensorData) return; analysisResultEl.innerHTML = '<div class="loader mx-0 my-2"></div>'; analysisResultContainer.classList.remove('hidden'); const prompt = `ANALYZE CURRENT CONDITIONS based on this data: ${JSON.stringify(lastSensorData)}`; const analysis = await callGeminiApi(prompt); analysisResultEl.textContent = analysis; });
+            recordForm.addEventListener('submit', async(e)=>{e.preventDefault();const t={timestamp:(new Date).toISOString(),temperature:parseFloat(document.getElementById("temperature").value),humidity:parseFloat(document.getElementById("humidity").value),sunlight:parseFloat(document.getElementById("sunlight").value),co2:parseFloat(document.getElementById("co2").value)};try{const e=await fetch(`${API_BASE_URL}/record`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(t)}),s=await e.json();if(s.error)throw new Error(s.error);showMessage(recordMessageEl,"Data recorded successfully!",!1),recordForm.reset(),fetchAllSensorData()}catch(e){showMessage(recordMessageEl,`Error: ${e.message}`,!0)}});
+            
+            // --- NEW: Fully Functional Plugin Manager ---
+            const fetchPlugins = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/plugins`);
+                    return await response.json();
+                } catch (error) {
+                    console.error("Error fetching plugins:", error);
+                    return [];
+                }
+            };
+
+            const fetchSettings = async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/plugins/settings`);
+                    return await response.json();
+                } catch (error) {
+                    console.error("Error fetching settings:", error);
+                    return {};
+                }
+            };
+            
+            const renderPlugins = (plugins) => {
+                const installedContainer = document.getElementById('installed-tab');
+                const marketplaceContainer = document.getElementById('marketplace-grid');
+                const installedCountBadge = document.getElementById('installed-count-badge');
+                
+                const installedPlugins = plugins.filter(p => p.is_installed);
+                const availableForInstall = plugins.filter(p => !p.is_installed);
+                
+                installedCountBadge.textContent = `${installedPlugins.length} Installed`;
+                
+                installedContainer.innerHTML = installedPlugins.map(plugin => `
+                    <div class="p-4 bg-white/50 border rounded-lg flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <div class="p-3 text-2xl bg-emerald-100/60 rounded-lg">${plugin.icon}</div>
+                            <div>
+                                <h3 class="font-semibold text-gray-800">${plugin.name}</h3>
+                                <p class="text-sm text-gray-500">${plugin.description}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <span class="text-sm text-gray-600">${plugin.is_enabled ? 'Enabled' : 'Disabled'}</span>
+                            <label class="switch"><input type="checkbox" ${plugin.is_enabled ? 'checked' : ''} data-plugin-id="${plugin.id}" class="plugin-toggle"><span class="slider"></span></label>
+                        </div>
+                    </div>`).join('') || '<p class="text-center text-gray-500 py-8">No plugins installed. Visit the Marketplace to add some!</p>';
+
+                marketplaceContainer.innerHTML = availableForInstall.map(plugin => `
+                    <div class="p-4 bg-white/50 border rounded-lg flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-start gap-4 mb-3">
+                                <div class="p-3 text-2xl bg-emerald-100/60 rounded-lg">${plugin.icon}</div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-800">${plugin.name}</h3>
+                                    <p class="text-sm text-gray-500 mb-2">${plugin.description}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button data-plugin-id="${plugin.id}" class="install-btn w-full bg-emerald-600 text-white font-semibold p-2 rounded-md hover:bg-emerald-700 transition">Install</button>
+                    </div>`).join('') || '<p class="text-center text-gray-500 py-8 col-span-2">All available plugins have been installed.</p>';
+                
+                addPluginEventListeners();
+            };
+
+            const renderSettings = (settings) => {
+                const settingsContainer = document.getElementById('settings-tab');
+                settingsContainer.innerHTML = `
+                    <div class="p-4 bg-white/50 border rounded-lg">
+                        <div class="flex items-center justify-between py-2">
+                             <div>
+                                <h4 class="font-medium text-gray-800">Auto-update plugins</h4>
+                                <p class="text-sm text-gray-500">Automatically install updates in the background.</p>
+                            </div>
+                            <label class="switch"><input type="checkbox" ${settings.auto_update ? 'checked' : ''} data-setting-key="auto_update" class="setting-toggle"><span class="slider"></span></label>
+                        </div>
+                        <hr class="my-2">
+                        <div class="flex items-center justify-between py-2">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Beta plugin access</h4>
+                                <p class="text-sm text-gray-500">Get access to experimental plugins and features.</p>
+                            </div>
+                            <label class="switch"><input type="checkbox" ${settings.beta_access ? 'checked' : ''} data-setting-key="beta_access" class="setting-toggle"><span class="slider"></span></label>
+                        </div>
+                        <hr class="my-2">
+                        <div class="flex items-center justify-between py-2">
+                            <div>
+                                <h4 class="font-medium text-gray-800">Plugin telemetry</h4>
+                                <p class="text-sm text-gray-500">Help improve plugins by sharing anonymous usage data.</p>
+                            </div>
+                            <label class="switch"><input type="checkbox" ${settings.telemetry ? 'checked' : ''} data-setting-key="telemetry" class="setting-toggle"><span class="slider"></span></label>
+                        </div>
+                    </div>`;
+                addSettingsEventListeners();
+            };
+
+            const addPluginEventListeners = () => {
+                document.querySelectorAll('.plugin-toggle').forEach(toggle => {
+                    toggle.addEventListener('change', async (e) => {
+                        const pluginId = e.target.dataset.pluginId;
+                        await fetch(`${API_BASE_URL}/plugins/toggle/${pluginId}`, { method: 'POST' });
+                        const updatedPlugins = await fetchPlugins();
+                        renderPlugins(updatedPlugins);
+                    });
+                });
+                document.querySelectorAll('.install-btn').forEach(button => {
+                    button.addEventListener('click', async (e) => {
+                        const pluginId = e.target.dataset.pluginId;
+                        await fetch(`${API_BASE_URL}/plugins/install/${pluginId}`, { method: 'POST' });
+                        const updatedPlugins = await fetchPlugins();
+                        renderPlugins(updatedPlugins);
+                    });
+                });
+            };
+
+            const addSettingsEventListeners = () => {
+                document.querySelectorAll('.setting-toggle').forEach(toggle => {
+                    toggle.addEventListener('change', async (e) => {
+                        const key = e.target.dataset.settingKey;
+                        const value = e.target.checked;
+                        await fetch(`${API_BASE_URL}/plugins/settings`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ [key]: value })
+                        });
+                    });
+                });
+            };
+
+            const tabs = document.querySelectorAll('.tab-btn');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    const target = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.tabs-content').forEach(content => {
+                        content.classList.remove('active');
+                        if (content.id === `${target}-tab`) { content.classList.add('active'); }
+                    });
+                });
+            });
+
+            // --- Initial Load ---
+            const initializeDashboard = async () => {
+                await fetchAllSensorData();
+                const plugins = await fetchPlugins();
+                renderPlugins(plugins);
+                const settings = await fetchSettings();
+                renderSettings(settings);
+            };
+
+            initializeDashboard();
+        });
+    </script>
+</body>
+</html>
