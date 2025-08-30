@@ -1,6 +1,5 @@
-numpy
-torch
 flask
 flask-cors
+numpy
+torch
 scikit-learn
-paho-mqtt
