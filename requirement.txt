@@ -1,0 +1,6 @@
+numpy
+torch
+flask
+flask-cors
+scikit-learn
+paho-mqtt
