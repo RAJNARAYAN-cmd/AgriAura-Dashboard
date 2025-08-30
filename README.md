@@ -27,9 +27,10 @@ It integrates **IoT sensors, AI/ML (PyTorch), MQTT, SQLite, and a modern web das
 - **Plugin System** – Extend functionality with weather, irrigation, pest detection, and market analytics plugins.  
 - **AI Reports (Demo)** – Simulated AI-powered sustainability analysis & recommendations.  
 
----
 
 ## 📂 Project Structure  
+
+```
 
 ├── app.py # Main backend (Flask, PyTorch, MQTT, SQLite)
 ├── import os.py # Lightweight backend version
@@ -39,7 +40,7 @@ It integrates **IoT sensors, AI/ML (PyTorch), MQTT, SQLite, and a modern web das
 ├── agriaura.db # (Generated) SQLite database 
 
 
----
+```
 
 ## 🛠️ Installation & Setup  
 
